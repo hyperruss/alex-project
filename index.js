@@ -13,7 +13,6 @@ const ASSETS = [
   { s: "TRXUSDT", n: "TRX" },
 ];
 
-// ── API ─────────────────────────────────────────────────────
 async function fetchKlines(s, t) {
   const url = `https://api.binance.com/api/v3/klines?symbol=${s}&interval=${t}&limit=120`;
   const r = await fetch(url, { cache: "no-store" });
@@ -85,7 +84,6 @@ async function loadCur() {
   }
 }
 
-// ── TA ──────────────────────────────────────────────────────
 function analyse() {
   const cl = cds.map((c) => c.c),
     hi = cds.map((c) => c.h),
@@ -240,7 +238,7 @@ function detectPat(cds) {
     Math.max(...last5.map((c) => c.h)) - Math.min(...last5.map((c) => c.l));
   const pole = prior[prior.length - 1];
   const bU = (pole.c - pole.o) / pole.o,
-    bD = (pole.c - pole.o) / pole.o;
+    bD = (pole.o - pole.c) / pole.o;
   if (bU > 0.025 && cR < pR * 0.45)
     return {
       n: "🚀 БЫЧИЙ ВЫМПЕЛ",
@@ -248,7 +246,7 @@ function detectPat(cds) {
       d: "Сильный рост → сжатие. Ожидается продолжение вверх.",
       pt: "pb",
     };
-  if (bD < -0.025 && cR < pR * 0.45)
+  if (bD > 0.025 && cR < pR * 0.45)
     return {
       n: "🔻 МЕДВЕЖИЙ ВЫМПЕЛ",
       t: "bear",
@@ -449,7 +447,6 @@ function calcTPSL(price, score, lvls) {
     "1 : " + (Math.abs(tp1 - price) / Math.abs(sl - price)).toFixed(2);
 }
 
-// ── UI UPDATES ───────────────────────────────────────────────
 function updInds(rsi, macd, msig, hist, e20, e50, bb, price) {
   const rEl = document.getElementById("rsiV");
   rEl.textContent = rsi.toFixed(1);
@@ -554,17 +551,13 @@ function updPat(pat) {
   drawPat(pat);
 }
 
-// ── CHARTS ──────────────────────────────────────────────────
 function drawChart() {
   const cv = document.getElementById("chartCanvas");
-  const rect = cv.parentElement.getBoundingClientRect();
-  const W = Math.max(1, Math.round(rect.width));
+  const W = cv.clientWidth || cv.offsetWidth;
   const H = 295;
   const dpr = window.devicePixelRatio || 1;
   cv.width = Math.max(1, Math.round(W * dpr));
   cv.height = Math.max(1, Math.round(H * dpr));
-  cv.style.width = W + "px";
-  cv.style.height = H + "px";
   const ctx = cv.getContext("2d");
   if (ctx.resetTransform) ctx.resetTransform();
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -608,15 +601,18 @@ function drawChart() {
     );
     ctx.stroke();
   });
+  const bbArr = cl.map((_, i) => {
+    if (i < 19) return null;
+    return calcBB(cl.slice(i - 19, i + 1));
+  });
   ctx.strokeStyle = "rgba(155,89,182,.3)";
   ctx.lineWidth = 1;
   ctx.setLineDash([3, 3]);
   ["upper", "lower"].forEach((k) => {
     ctx.beginPath();
     let f = true;
-    data.forEach((_, i) => {
-      if (i < 19) return;
-      const bb = calcBB(cl.slice(i - 19, i + 1));
+    bbArr.forEach((bb, i) => {
+      if (!bb) return;
       const x = toX(i),
         y = toY(bb[k]);
       f ? (ctx.moveTo(x, y), (f = false)) : ctx.lineTo(x, y);
@@ -718,14 +714,11 @@ function drawChart() {
 
 function drawVol() {
   const cv = document.getElementById("volCanvas");
-  const rectV = cv.parentElement.getBoundingClientRect();
-  const Wv = Math.max(1, Math.round(rectV.width));
+  const Wv = cv.clientWidth || cv.offsetWidth;
   const Hv = 52;
   const dprV = window.devicePixelRatio || 1;
   cv.width = Math.max(1, Math.round(Wv * dprV));
   cv.height = Math.max(1, Math.round(Hv * dprV));
-  cv.style.width = Wv + "px";
-  cv.style.height = Hv + "px";
   const ctx = cv.getContext("2d");
   if (ctx.resetTransform) ctx.resetTransform();
   ctx.setTransform(dprV, 0, 0, dprV, 0, 0);
@@ -745,14 +738,11 @@ function drawVol() {
 
 function drawPat(pat) {
   const cv = document.getElementById("patCanvas");
-  const rectP = cv.parentElement.getBoundingClientRect();
-  const Wp = Math.max(1, Math.round(rectP.width));
+  const Wp = cv.clientWidth || cv.offsetWidth;
   const Hp = 52;
   const dprP = window.devicePixelRatio || 1;
   cv.width = Math.max(1, Math.round(Wp * dprP));
   cv.height = Math.max(1, Math.round(Hp * dprP));
-  cv.style.width = Wp + "px";
-  cv.style.height = Hp + "px";
   const ctx = cv.getContext("2d");
   if (ctx.resetTransform) ctx.resetTransform();
   ctx.setTransform(dprP, 0, 0, dprP, 0, 0);
@@ -837,15 +827,12 @@ function drawPat(pat) {
   ctx.stroke();
 }
 
-// ── AI ──────────────────────────────────────────────────────
 async function runAI(price, rsi, macd, msig, hist, e20, e50, bb, trend, pat) {
   const el = document.getElementById("aitxt");
   el.innerHTML = '<span class="aild">AI АНАЛИЗИРУЕТ...</span>';
   try {
     const dirs = { up: "восходящий", down: "нисходящий", side: "боковой" };
-    const prompt = `Ты профессиональный трейдер. Кратко проанализируй ${sname}/USDT, таймфрейм ${tf}.
-Данные: цена $${fp(price)}, RSI ${rsi.toFixed(1)}, MACD ${fp(macd)} (hist ${hist > 0 ? "+" : ""}${fp(hist)}), EMA20 $${fp(e20)} / EMA50 $${fp(e50)}, BB верх $${fp(bb.upper)} / низ $${fp(bb.lower)}, тренд: ${dirs[trend.dir]} (сила ${trend.str}/5), паттерн: ${pat.n}.
-Ответ: 1) Решение (ПОКУПКА/ПРОДАЖА/ОЖИДАНИЕ) 2) 2-3 ключевых аргумента 3) На что смотреть дальше. Макс 80 слов, по-русски.`;
+    const prompt = `Ты профессиональный трейдер. Кратко проанализируй ${sname}/USDT, таймфрейм ${tf}.\nДанные: цена $${fp(price)}, RSI ${rsi.toFixed(1)}, MACD ${fp(macd)} (hist ${hist > 0 ? "+" : ""}${fp(hist)}), EMA20 $${fp(e20)} / EMA50 $${fp(e50)}, BB верх $${fp(bb.upper)} / низ $${fp(bb.lower)}, тренд: ${dirs[trend.dir]} (сила ${trend.str}/5), паттерн: ${pat.n}.\nОтвет: 1) Решение (ПОКУПКА/ПРОДАЖА/ОЖИДАНИЕ) 2) 2-3 ключевых аргумента 3) На что смотреть дальше. Макс 80 слов, по-русски.`;
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -863,7 +850,7 @@ async function runAI(price, rsi, macd, msig, hist, e20, e50, bb, trend, pat) {
       "AI-анализ временно недоступен. Используйте индикаторы выше.";
   }
 }
-// ── HELPERS ─────────────────────────────────────────────────
+
 function fp(p) {
   if (p === undefined || p === null) return "—";
   const a = Math.abs(p);
@@ -897,7 +884,6 @@ function setLd(show, msg = "") {
   } else ld.style.display = "none";
 }
 
-// ── CONTROLS ────────────────────────────────────────────────
 function selA(s, n) {
   sym = s;
   sname = n;
@@ -924,7 +910,6 @@ function setCT(t) {
   drawChart();
 }
 
-// ── INIT ────────────────────────────────────────────────────
 window.addEventListener("load", async () => {
   await loadAll();
   setInterval(loadAll, 30000);
