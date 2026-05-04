@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIGNAL FORGE — Trading Intelligence</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div class="loading" id="loader">
+      <div class="lhex"></div>
+      <div class="ltxt">SIGNAL FORGE</div>
+      <div class="lsub" id="lmsg">ПОДКЛЮЧЕНИЕ К БИРЖЕ...</div>
+    </div>
+    <div class="wrap">
+      <header>
+        <div class="logo">
+          <div class="hex">⬡</div>
+          <div>
+            <h1>SIGNAL FORGE</h1>
+            <span>ТЕХНИЧЕСКИЙ АНАЛИЗ · BINANCE /MEXC DATA</span>
+          </div>
+        </div>
+        <div class="hr">
+          <div class="live">
+            <div class="dot"></div>
+            LIVE
+          </div>
+          <div class="utime" id="utime">—</div>
+          <div class="sbadge" id="srcbadge">BINANCE API</div>
+          <a href="https://www.mexc.com/" target="_blank" class="btn btn-o"
+            >↗️ MEXC</a
+          >
+          <button class="btn" id="rbtn" onclick="loadAll()">⟳ ОБНОВИТЬ</button>
+        </div>
+      </header>
+      <div class="tabs" id="tabs">
+        <button
+          class="tab active"
+          onclick="selA('BTCUSDT', 'BTC')"
+          id="tab-BTCUSDT"
+        >
+          BTC<span class="tp" id="tp-BTCUSDT">—</span
+          ><span class="tc" id="tc-BTCUSDT"></span>
+        </button>
+        <button
+          class="tab"
+          onclick="selA('LUNAUSDT', 'LUNA')"
+          id="tab-LUNAUSDT"
+        >
+          LUNA<span class="tp" id="tp-LUNAUSDT">—</span
+          ><span class="tc" id="tc-LUNAUSDT"></span>
+        </button>
+        <button
+          class="tab"
+          onclick="selA('PEPEUSDT', 'PEPE')"
+          id="tab-PEPEUSDT"
+        >
+          PEPE<span class="tp" id="tp-PEPEUSDT">—</span
+          ><span class="tc" id="tc-PEPEUSDT"></span>
+        </button>
+        <button class="tab" onclick="selA('SOLUSDT', 'SOL')" id="tab-SOLUSDT">
+          SOL<span class="tp" id="tp-SOLUSDT">—</span
+          ><span class="tc" id="tc-SOLUSDT"></span>
+        </button>
+        <button class="tab" onclick="selA('TRXUSDT', 'TRX')" id="tab-TRXUSDT">
+          TRX<span class="tp" id="tp-TRXUSDT">—</span
+          ><span class="tc" id="tc-TRXUSDT"></span>
+        </button>
+      </div>
+      <div class="grid">
+        <div>
+          <div class="panel">
+            <div class="ph">
+              <div class="pt">ЦЕНОВОЙ ГРАФИК</div>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                <div class="ctrls" id="ctctrl">
+                  <button
+                    class="cb active"
+                    onclick="setCT('candle')"
+                    id="ct-candle"
+                  >
+                    СВЕЧИ
+                  </button>
+                  <button class="cb" onclick="setCT('line')" id="ct-line">
+                    ЛИНИЯ
+                  </button>
+                  <button class="cb" onclick="setCT('bar')" id="ct-bar">
+                    БАРЫ
+                  </button>
+                </div>
+                <div class="ctrls" id="tfctrl">
+                  <button class="cb active" onclick="setTF('15m')" id="tf-15m">
+                    15M
+                  </button>
+                  <button class="cb" onclick="setTF('1h')" id="tf-1h">
+                    1H
+                  </button>
+                  <button class="cb" onclick="setTF('4h')" id="tf-4h">
+                    4H
+                  </button>
+                  <button class="cb" onclick="setTF('1d')" id="tf-1d">
+                    1D
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div id="cerr"></div>
+            <div class="cwrap">
+              <canvas id="chartCanvas"></canvas>
+            </div>
+            <canvas id="volCanvas"></canvas>
+          </div>
+          <div class="irow">
+            <div class="ind" style="--ic: var(--accent)">
+              <div class="il">RSI (14)</div>
+              <div class="iv" id="rsiV">—</div>
+              <div class="rbar"><div class="rfill" id="rfill"></div></div>
+              <div class="rmk">
+                <span>30</span><span>50</span><span>70</span>
+              </div>
+              <div class="is" id="rsiZ">—</div>
+            </div>
+            <div class="ind" style="--ic: var(--orange)">
+              <div class="il">MACD</div>
+              <div class="iv" id="macdV" style="font-size: 12px">—</div>
+              <div class="is" id="macdS">—</div>
+              <div class="is" id="macdH">—</div>
+            </div>
+            <div class="ind" style="--ic: #9b59b6">
+              <div class="il">EMA 20 / 50</div>
+              <div class="iv" id="ema20V" style="font-size: 12px">—</div>
+              <div class="is" id="ema50V">—</div>
+              <div class="is" id="emaCr">—</div>
+            </div>
+            <div class="ind" style="--ic: var(--red)">
+              <div class="il">BOLLINGER (20,2)</div>
+              <div class="iv" id="bbU" style="font-size: 12px">—</div>
+              <div class="is" id="bbM">—</div>
+              <div class="is" id="bbL">—</div>
+            </div>
+          </div>
+          <div class="panel" style="margin-top: 14px">
+            <div class="ph">
+              <div class="pt">УРОВНИ ПОДДЕРЖКИ / СОПРОТИВЛЕНИЯ</div>
+              <div class="pt" id="srcnt" style="color: var(--accent)">—</div>
+            </div>
+            <div class="srgrid" id="srgrid"></div>
+          </div>
+        </div>
+        <div class="sigpanel">
+          <div class="msig" id="msig">
+            <div class="slbl">ТОРГОВЫЙ СИГНАЛ</div>
+            <div class="stype" id="stype">—</div>
+            <div class="sconf" id="sconf"></div>
+            <ul class="srs" id="srs"></ul>
+          </div>
+          <div class="tpsl">
+            <div class="tpc tp">
+              <div class="tlbl">TAKE PROFIT 1</div>
+              <div class="tprice" id="tp1">—</div>
+              <div class="tpct" id="tp1p">—</div>
+            </div>
+            <div class="tpc sl">
+              <div class="tlbl">STOP LOSS</div>
+              <div class="tprice" id="sl1">—</div>
+              <div class="tpct" id="sl1p">—</div>
+            </div>
+            <div class="tpc tp">
+              <div class="tlbl">TAKE PROFIT 2</div>
+              <div class="tprice" id="tp2">—</div>
+              <div class="tpct" id="tp2p">—</div>
+            </div>
+            <div class="tpc tp" style="border-color: rgba(0, 255, 136, 0.15)">
+              <div class="tlbl">TAKE PROFIT 3</div>
+              <div class="tprice" id="tp3">—</div>
+              <div class="tpct" id="tp3p">—</div>
+            </div>
+          </div>
+          <div class="tbox">
+            <div class="pt">ТРЕНД</div>
+            <div class="tvis">
+              <div class="tarr" id="tarr">—</div>
+              <div class="tinf">
+                <h3 id="tname">—</h3>
+                <p id="tdesc">—</p>
+              </div>
+              <div class="swrap">
+                <div class="sbrs" id="sbrs">
+                  <div class="sbr"></div>
+                  <div class="sbr"></div>
+                  <div class="sbr"></div>
+                  <div class="sbr"></div>
+                  <div class="sbr"></div>
+                </div>
+                <div class="is" id="slbl">—</div>
+              </div>
+            </div>
+          </div>
+          <div class="pbox">
+            <div class="pt">ПАТТЕРН</div>
+            <div class="pname" id="pname">—</div>
+            <canvas id="patCanvas"></canvas>
+            <div class="pdesc" id="pdesc">—</div>
+          </div>
+          <div class="panel" style="padding: 14px">
+            <div class="pt" style="margin-bottom: 12px">ДАННЫЕ АКТИВА</div>
+            <div class="pibox">
+              <div class="pil">
+                <div class="pil-l">ЦЕНА</div>
+                <div class="pil-v" id="curP">—</div>
+              </div>
+              <div class="pil">
+                <div class="pil-l">ИЗМЕНЕНИЕ 24Ч</div>
+                <div class="pil-v" id="chg24">—</div>
+              </div>
+              <div class="pil">
+                <div class="pil-l">ОБЪЁМ 24Ч</div>
+                <div
+                  class="pil-v"
+                  id="vol24"
+                  style="font-size: 12px; margin-top: 4px"
+                >
+                  —
+                </div>
+              </div>
+              <div class="pil">
+                <div class="pil-l">R/R RATIO</div>
+                <div
+                  class="pil-v"
+                  id="rr"
+                  style="font-size: 12px; color: var(--orange); margin-top: 4px"
+                >
+                  —
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="aibox">
+            <div class="aititle">⬡ AI-АНАЛИЗ (CLAUDE)</div>
+            <div class="aitxt" id="aitxt">
+              <span class="aild">ОЖИДАНИЕ ДАННЫХ...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bot">
+        <span
+          >SIGNAL FORGE · Данные:
+          <a href="https://www.binance.com/" target="_blank">Binance</a> ·
+          Торговля:
+          <a href="https://www.mexc.com/" target="_blank">MEXC</a></span
+        >
+        <span
+          >⚠️ Не является инвестиционной рекомендацией. Торгуйте
+          осознанно.</span
+        >
+      </div>
+    </div>
+    <script src="index.js"></script>
+  </body>
+</html>
